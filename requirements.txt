@@ -1,0 +1,4 @@
+pika
+gradio
+sqlalchemy
+psycopg2
