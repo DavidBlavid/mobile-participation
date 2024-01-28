@@ -2,11 +2,11 @@ import pika
 import os
 import sys
 import gradio as gr
+import random
 from threading import Thread
 
-from src.db.model import Team
-from src.db.build import build, connect_db, set_state, get_state
-
+from src.db.model import Team, Video, State
+from src.db.build import build, connect_db, set_phase, get_phase
 if __name__ == '__main__':
 
     # get launch arguments
@@ -169,12 +169,73 @@ if __name__ == '__main__':
         session.close()
         engine.dispose()
     
-    def set_state_hide():
-        set_state('hide')
+    def set_phase_hide():
+        set_phase('hide')
     
-    def set_state_show():
-        set_state('show')
+    def set_phase_show():
+        set_phase('show')
 
+    def set_video():
+        """
+        Set the current video.
+        """
+        engine, session = connect_db()
+
+        global video_index, videos
+        if video_index >= len(videos):
+            print("No video found")
+            return
+
+        # get the current video
+        current_video = videos[video_index]
+
+        if current_video is None:
+            print("No video found")
+            return
+        
+        # update the state
+        current_state = session.query(State).first()
+        current_state.video_id = current_video.id
+
+        return_list = [
+            gr.Label(value=current_video.id),
+            gr.Label(current_video.question),
+            gr.Label(current_video.answer)
+        ]
+
+        # commit the changes
+        session.commit()
+
+        # close the database connection
+        session.close()
+        engine.dispose()
+
+        return return_list
+    
+    def next_video():
+        """
+        Set the current video.
+        """
+        global video_index, videos
+        if video_index == None:
+            video_index = -1
+        video_index += 1
+        
+        return_list = set_video()
+        return return_list
+    
+    # get all videos from the database
+    engine, session = connect_db()
+    videos = session.query(Video).all()
+    video_index = None   # index of the current video
+
+    # shuffle the videos
+    random.shuffle(videos)
+
+    # close the database connection
+    session.close()
+    engine.dispose()
+    
     Thread(target=consume_messages, daemon=True).start()
 
     player_labels = [None for i in range(num_players)]
@@ -191,6 +252,15 @@ if __name__ == '__main__':
                     with gr.Column(scale=1):
                         player_point_up[i] = gr.Button(value="+1")
                         player_point_down[i] = gr.Button(value="-1")
+            
+            with gr.Row():
+                label_video_id = gr.Label(value=" ")
+                label_video_question = gr.Label(value=" ")
+                label_video_answer = gr.Label(value=" ")
+
+                button_next_video = gr.Button(value="Next Video")
+                button_next_video.click(fn=next_video, inputs=[], outputs=[label_video_id, label_video_question, label_video_answer])
+
 
             # we need to do this in a separate loop because the buttons need to be created first
             # otherwise, the update functions will not be able to find the buttons
@@ -224,7 +294,7 @@ if __name__ == '__main__':
                 button_show = gr.Button(value="Show Answers")
 
                 # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
-                button_hide.click(fn=set_state_hide, inputs=[], outputs=[])
-                button_show.click(fn=set_state_show, inputs=[], outputs=[])
+                button_hide.click(fn=set_phase_hide, inputs=[], outputs=[])
+                button_show.click(fn=set_phase_show, inputs=[], outputs=[])
 
     demo.launch(server_name='0.0.0.0', server_port=7999, debug=True)

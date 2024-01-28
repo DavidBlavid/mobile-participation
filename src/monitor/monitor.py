@@ -5,7 +5,9 @@ import gradio as gr
 from threading import Thread
 
 from src.db.model import Team
-from src.db.build import connect_db, get_state, set_state
+from src.db.build import connect_db, get_phase, set_phase, get_video
+
+VIDEO_DIR = "videos"
 
 if __name__ == '__main__':
 
@@ -37,10 +39,12 @@ if __name__ == '__main__':
     def refresh_labels():
         """
         Fetch current players' answers and points from the database and return them.
+        If there are n players, this returns 3n labels:
+        `[team1, team2, ..., teamn, points1, points2, ..., pointsn, answer1, answer2, ..., answern]
         """
         engine, session = connect_db()
 
-        state = get_state()
+        phase = get_phase()
 
         # get all teams, ordered by name
         teams = session.query(Team).order_by(Team.name).all()
@@ -48,7 +52,7 @@ if __name__ == '__main__':
         session.close()
         engine.dispose()
         
-        player_labels = [gr.Label(value="No Team connected") for i in range(num_players)]
+        labels = [gr.Label(value="-", show_label=False) for i in range(num_players * 3)]
 
         for i in range(num_players):
 
@@ -59,30 +63,85 @@ if __name__ == '__main__':
 
             if current_team is not None:
 
-                if state == 'hide':
-                    player_labels[i] = gr.Label(value=f"{current_team.name}: ??? ({current_team.points})")
-                elif state == 'show':
-                    player_labels[i] = gr.Label(value=f"{current_team.name}: {current_team.answer} ({current_team.points})")
+                labels[i] = gr.Label(value=f"{current_team.name}", show_label=False)
+                labels[i + num_players] = gr.Label(value=f"{current_team.points} Punkte", show_label=False)
 
-        return player_labels
+                if phase == 'hide':
+                    labels[i + 2 * num_players] = gr.Label(value=f"???", show_label=False)
+                elif phase == 'show':
+                    if current_team.answer is None or current_team.answer == "":
+                        labels[i + 2 * num_players] = gr.Label(value=f"-", show_label=False)
+                    else:
+                        labels[i + 2 * num_players] = gr.Label(value=f"{current_team.answer}", show_label=False)
+
+        return labels
     
-    player_labels = [None for i in range(num_players)]
+    def play_video(duration):
 
-    with gr.Blocks() as demo:
-        with gr.Column():
+        # get the game state
+        video = get_video()
+        video_filename = video.filename
 
-            for i in range(num_players):
-                with gr.Row():
-                    with gr.Column(scale=10):
-                        player_labels[i] = gr.Label(value=f"No Team connected")
+        file_path = f'{VIDEO_DIR}/{duration}s/{video_filename}.mp4'
 
+        return file_path
+    
+    labels_team = [None for i in range(num_players)]
+    labels_points = [None for i in range(num_players)]
+    lables_answer = [None for i in range(num_players)]
+
+    video = None
+
+    css = """
+    #label_team {padding: 0 !important; font-size: var(--text-xl) !important;}
+    #label_points {padding: 0 !important; font-size: var(--text-xl) !important;}
+    #label_answer {padding: 0 !important; font-size: var(--text-xl) !important;}
+    #label_team .output-class {padding: 0 !important; font-size: var(--text-xl) !important;}
+    #label_points .output-class {padding: 0 !important; font-size: var(--text-xl) !important;}
+    #label_answer .output-class {padding: 0 !important; font-size: var(--text-xl) !important;}
+    """
+
+    with gr.Blocks(css=css) as demo:
+
+        with gr.Row():
+            # create the video output
+            video = gr.Video(
+                height=600,
+                width=600,
+                label="Video",
+                show_label=False,
+                interactive=False,
+                autoplay=True
+                )
+
+        for i in range(num_players):
             with gr.Row():
+                with gr.Column(scale=1, min_width=0):
+                    labels_team[i] = gr.Label(value=f"-", show_label=False, elem_id=f"label_team")
+                with gr.Column(scale=1, min_width=0):
+                    labels_points[i] = gr.Label(value=f"-", show_label=False, elem_id=f"label_points")
+                with gr.Column(scale=6, min_width=0):
+                    lables_answer[i] = gr.Label(value=f"-", show_label=False, elem_id=f"label_answer")
+        
+        with gr.Row():
+            # Create a button for refreshing the player labels
+            button_refresh = gr.Button(value="Refresh")
 
-                # Create a button for refreshing the player labels
-                button_refresh = gr.Button(value="Refresh")
+            # buttons to play 2s, 5s or 10s
+            button_2s = gr.Button(value="2s")
+            button_5s = gr.Button(value="5s")
+            button_10s = gr.Button(value="10s")
 
-                # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
-                button_refresh.click(fn=refresh_labels, inputs=[], outputs=player_labels, every=0.5)
+            # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
+            button_2s.click(fn=lambda: play_video(2), inputs=[], outputs=[video])
+            button_5s.click(fn=lambda: play_video(5), inputs=[], outputs=[video])
+            button_10s.click(fn=lambda: play_video(10), inputs=[], outputs=[video])
+
+            # create a list of all labels
+            all_labels = labels_team + labels_points + lables_answer
+
+            # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
+            button_refresh.click(fn=refresh_labels, inputs=[], outputs=all_labels, every=0.5)
     
     print("Starting monitor on port 8000...")
 

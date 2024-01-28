@@ -1,2 +1,5 @@
 # ignore all __pycache__ folders
 **/__pycache__/
+
+# hide the /videos folder, but not the src/videos folder
+/videos/

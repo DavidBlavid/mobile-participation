@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -20,4 +21,24 @@ class Team(Base):
 class State(Base):
     __tablename__ = 'state'
     id = Column(Integer, primary_key=True)
-    state = Column(String)
+    phase = Column(String)
+    video_id = Column(Integer, ForeignKey('videos.id'), nullable=True)
+    video = relationship("Video", backref="state")
+
+class Video(Base):
+    """
+    - author (str): name of the author of the video
+    - source (str): source of the video (advert, show, song...)
+    - question (str): question for the video
+    - answer (str): correct answer to the video
+    - link (str): youtube link to the video
+    - filename (str): filename of the saved video
+    """
+    __tablename__ = 'videos'
+    id = Column(Integer, primary_key=True)
+    author = Column(String)
+    source = Column(String)
+    question = Column(String)
+    answer = Column(String)
+    link = Column(String)
+    filename = Column(String)

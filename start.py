@@ -7,7 +7,7 @@ def launch_mobile_host(n_hosts):
     subprocess.run(cmd, shell=True)
 
 def launch_server(n_hosts):
-    cmd = f"python -m src.server.server {n_hosts} -b"
+    cmd = f"python -m src.server.server {n_hosts}"
     subprocess.run(cmd, shell=True)
 
 def launch_monitor(n_hosts):

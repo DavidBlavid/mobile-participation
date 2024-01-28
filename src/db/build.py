@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
-from src.db.model import Base, Team, State
+from src.db.model import Base, Team, State, Video
 
 def build(verbose=False):
     """
@@ -28,7 +28,7 @@ def build(verbose=False):
 
     # set the base state
     if verbose: print("Setting the base state... ", end='')
-    set_state('hide')
+    set_phase('hide')
     if verbose: print("Done!")
 
     # close the database connection
@@ -39,9 +39,9 @@ def build(verbose=False):
     if verbose: print("Database rebuild finished")
     if verbose: print("=========================")
 
-def set_state(state):
+def set_phase(phase):
     """
-    Set the state of the game.
+    Set the phase of the game.
     """
     # connect to the database
     engine, session = connect_db()
@@ -51,12 +51,12 @@ def set_state(state):
 
     if current_state is None:
         # create a new state
-        current_state = State(state=state)
+        current_state = State(phase=phase, video_id=None)
         # add the state to the database
         session.add(current_state)
     else:
         # update the state
-        current_state.state = state
+        current_state.phase = phase
 
     # commit the changes
     session.commit()
@@ -65,7 +65,7 @@ def set_state(state):
     session.close()
     engine.dispose()
 
-def get_state():
+def get_phase():
     """
     Get the state of the game.
     """
@@ -74,13 +74,30 @@ def get_state():
 
     # get the state
     current_state = session.query(State).first()
-    state = current_state.state
+    phase = current_state.phase
 
     # close the database connection
     session.close()
     engine.dispose()
 
-    return state
+    return phase
+
+def get_video() -> Video:
+    """
+    Get the current video.
+    """
+    # connect to the database
+    engine, session = connect_db()
+
+    # get the state
+    current_state = session.query(State).first()
+    video = current_state.video
+
+    # close the database connection
+    session.close()
+    engine.dispose()
+
+    return video
 
 def connect_db(host="postgres", port=5432, user="postgres", password="postgres", echo=False):
     """
