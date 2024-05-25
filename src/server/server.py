@@ -230,7 +230,7 @@ if __name__ == '__main__':
     video_index = None   # index of the current video
 
     # shuffle the videos
-    random.shuffle(videos)
+    # random.shuffle(videos)
 
     # close the database connection
     session.close()

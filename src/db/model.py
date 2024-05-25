@@ -41,4 +41,7 @@ class Video(Base):
     question = Column(String)
     answer = Column(String)
     link = Column(String)
+    show_video = Column(String)
+    video_start = Column(Integer)
+    video_end = Column(Integer)
     filename = Column(String)

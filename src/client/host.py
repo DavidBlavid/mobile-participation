@@ -6,6 +6,18 @@ import pika
 from src.db.model import Team
 from src.db.build import connect_db
 
+def connect_mq():
+    # Connect to RabbitMQ
+    in_docker = getenv('IN_DOCKER', False)
+    rabbitmq_host = 'rabbitmq' if in_docker else 'localhost'
+
+    connection = pika.BlockingConnection(pika.ConnectionParameters(rabbitmq_host, port=5672))
+    channel = connection.channel()
+
+    channel.queue_declare(queue='game', durable=True)
+
+    return channel, connection
+
 if __name__ == '__main__':
 
     # command line arguments
@@ -63,18 +75,11 @@ if __name__ == '__main__':
 
     print(f'Starting mobile host on port {port} for team {team_name}...')
 
-    # Connect to RabbitMQ
-    in_docker = getenv('IN_DOCKER', False)
-    rabbitmq_host = 'rabbitmq' if in_docker else 'localhost'
-    connection = pika.BlockingConnection(pika.ConnectionParameters(rabbitmq_host, port=5672))
-    channel = connection.channel()
-
-    channel.queue_declare(queue='game', durable=True)
-
-    print('Connected to RabbitMQ')
-
     # Function to be called when the button is pressed
-    def send_text(text):
+    def send_text(text, team_name=team_name):
+
+        # Connect to RabbitMQ
+        channel, connection = connect_mq()
 
         channel.basic_publish(
             exchange='',
@@ -84,6 +89,9 @@ if __name__ == '__main__':
                 delivery_mode=2,  # make message persistent
             )
         )
+
+        # close the connection
+        connection.close()
 
         print(f'{team_name}:{text}')
 

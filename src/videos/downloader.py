@@ -32,15 +32,19 @@ if __name__ == '__main__':
 
         tokens = line.split(';')
 
-        if len(tokens) != 5:
+        if len(tokens) != 8:
             print(f'Warning: invalid line in {path_csv}: {line}')
             continue
 
+        # get the entry information
         author = tokens[0]
         source = tokens[1]
         question = tokens[2]
         answer = tokens[3]
         link = tokens[4]
+        show_video = tokens[5]
+        video_start = tokens[6]
+        video_end = tokens[7]
 
         # create the filename
         # turn source lowercase, remove special characters and replace spaces with underscores
@@ -63,6 +67,9 @@ if __name__ == '__main__':
             question=question,
             answer=answer,
             link=link,
+            show_video=show_video,
+            video_start=video_start,
+            video_end=video_end,
             filename=download_name
         )
 

@@ -3,22 +3,42 @@
 
 import os
 from tqdm import tqdm
+from src.db.build import connect_db
+from src.db.model import Video
 
 if __name__ == '__main__':
 
-    # get all files in /videos/original
-    files = os.listdir('videos/original')
+    # connect to the database
+    engine, session = connect_db()
 
-    # make /videos/2s, /videos/5s and /videos/10s if they don't exist
-    for folder in ['2s', '5s', '10s']:
-        if not os.path.exists(f'videos/{folder}'):
-            os.makedirs(f'videos/{folder}')
+    # get all videos from the database
+    videos = session.query(Video).all()
+
+    # create the video/clips folder
+    if not os.path.exists(f'videos/clips'):
+        os.makedirs(f'videos/clips')
     
-    print(f"Splitting {len(files)} videos...")
+    print(f"Splitting {len(videos)} videos...")
 
-    # split each file into 2s, 5s and 10s clips
-    # only take the first 2s, 5s and 10s of each video
-    for file in tqdm(files):
-        os.system(f'ffmpeg -i "videos/original/{file}" -ss 00:00:00 -t 00:00:02 -loglevel error "videos/2s/{file}"')
-        os.system(f'ffmpeg -i "videos/original/{file}" -ss 00:00:00 -t 00:00:05 -loglevel error "videos/5s/{file}"')
-        os.system(f'ffmpeg -i "videos/original/{file}" -ss 00:00:00 -t 00:00:10 -loglevel error "videos/10s/{file}"')
+    for video in tqdm(videos):
+
+        # get the video path
+        video_path = f'./videos/original/{video.filename}.mp4'
+
+        # get conversion parameters
+        show_video = video.show_video
+        video_start = video.video_start
+        video_end = video.video_end
+
+        duration = video_end - video_start
+
+        # construct the ffmpeg command
+        if show_video == 'ja':
+            command = f'ffmpeg -i {video_path} -ss {video_start} -to {video_end} -y -c copy videos/clips/{video.filename}.mp4'
+        else:
+            command = f'ffmpeg -i {video_path} -ss {video_start} -to {video_end} -vf drawbox=color=black:t=fill -y -c:a copy videos/clips/{video.filename}.mp4'
+
+        # execute the command
+        os.system(command)
+    
+    print("Done!")
