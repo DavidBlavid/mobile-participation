@@ -14,10 +14,13 @@ if __name__ == '__main__':
     # get all videos from the database
     videos = session.query(Video).all()
 
-    # create the video/clips folder
-    if not os.path.exists(f'videos/clips'):
-        os.makedirs(f'videos/clips')
+    # create the folders if they do not exist
+    if not os.path.exists(f'videos/questions'):
+        os.makedirs(f'videos/questions')
     
+    if not os.path.exists(f'videos/answers'):
+        os.makedirs(f'videos/answers')
+
     print(f"Splitting {len(videos)} videos...")
 
     for video in tqdm(videos):
@@ -26,19 +29,20 @@ if __name__ == '__main__':
         video_path = f'./videos/original/{video.filename}.mp4'
 
         # get conversion parameters
-        show_video = video.show_video
-        video_start = video.video_start
-        video_end = video.video_end
+        question_start = video.question_start
+        question_end = video.question_end
+        answer_start = video.answer_start
+        answer_end = video.answer_end
 
-        duration = video_end - video_start
+        # extract the question clip
+        command = f'ffmpeg -i {video_path} -ss {question_start} -to {question_end} -vf drawbox=color=black:t=fill -y -c:a copy videos/questions/{video.filename}.mp4'
+        os.system(command)
 
-        # construct the ffmpeg command
-        if show_video == 'ja':
-            command = f'ffmpeg -i {video_path} -ss {video_start} -to {video_end} -y -c copy videos/clips/{video.filename}.mp4'
-        else:
-            command = f'ffmpeg -i {video_path} -ss {video_start} -to {video_end} -vf drawbox=color=black:t=fill -y -c:a copy videos/clips/{video.filename}.mp4'
-
-        # execute the command
+        # extract the answer clip
+        if answer_start == '-' or answer_end == '-':
+            continue
+        
+        command = f'ffmpeg -i {video_path} -ss {answer_start} -to {answer_end} -y -c copy videos/answers/{video.filename}.mp4'
         os.system(command)
     
     print("Done!")

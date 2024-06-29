@@ -268,8 +268,8 @@ if __name__ == '__main__':
                 player_name = f"Team {i + 1}"
 
                 # Get the update functions for increment and decrement
-                increment_function = create_update_function(player_name, 1)
-                decrement_function = create_update_function(player_name, -1)
+                increment_function = create_update_function(player_name, 10)
+                decrement_function = create_update_function(player_name, -10)
 
                 # Connect the buttons to their respective functions
                 player_point_up[i].click(fn=increment_function, inputs=[], outputs=[])

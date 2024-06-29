@@ -76,15 +76,27 @@ if __name__ == '__main__':
 
         return labels
     
-    def play_video():
+    def play_video_question():
 
         # get the game state
         video = get_video()
         video_filename = video.filename
 
-        file_path = f'{VIDEO_DIR}/clips/{video_filename}.mp4'
+        question_video_path = f'{VIDEO_DIR}/questions/{video_filename}.mp4'
 
-        return file_path
+        return question_video_path
+    
+    def play_video_answer():
+            
+        # get the game state
+        video = get_video()
+        video_filename = video.filename
+    
+        answer_video_path = f'{VIDEO_DIR}/answers/{video_filename}.mp4'
+    
+        return answer_video_path
+    
+
     
     labels_team = [None for i in range(num_players)]
     labels_points = [None for i in range(num_players)]
@@ -101,39 +113,42 @@ if __name__ == '__main__':
 
     with gr.Blocks(css=css) as demo:
 
-        with gr.Row():
-            with gr.Column(scale=2):
+        with gr.Tab():
+            with gr.Column():
                 for i in range(num_players):
                     with gr.Row():
                         labels_team[i] = gr.Label(value=f"-", show_label=False, elem_id=f"label_team", scale=1, elem_classes=["small_text"])
                         labels_points[i] = gr.Label(value=f"-", show_label=False, elem_id=f"label_points", scale=1, elem_classes=["small_text"])
                         lables_answer[i] = gr.Label(value=f"-", show_label=False, elem_id=f"label_answer", scale=3, elem_classes=["small_text"])
 
-            with gr.Column(scale=3):
+        with gr.Tab():
+            with gr.Column():
                 video = gr.Video(
-                    height=800,
-                    width=800,
+                    height=1080,
+                    width=1920,
                     label="Video",
                     show_label=False,
                     interactive=False,
                     autoplay=True
                 )
         
-        with gr.Row():
-            # Create a button for refreshing the player labels
-            button_refresh = gr.Button(value="Refresh")
+            with gr.Row():
+                # Create a button for refreshing the player labels
+                button_refresh = gr.Button(value="Refresh")
 
-            # buttons to play 2s, 5s or 10s
-            button_play = gr.Button(value="Play")
+                # buttons to play the question and answer videos
+                button_play_question = gr.Button(value="▶️ Frage")
+                button_play_answer = gr.Button(value="▶️ Antwort")
 
-            # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
-            button_play.click(fn=lambda: play_video(), inputs=[], outputs=[video])
+                # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
+                button_play_question.click(fn=lambda: play_video_question(), inputs=[], outputs=[video])
+                button_play_answer.click(fn=lambda: play_video_answer(), inputs=[], outputs=[video])
 
-            # create a list of all labels
-            all_labels = labels_team + labels_points + lables_answer
+                # create a list of all labels
+                all_labels = labels_team + labels_points + lables_answer
 
-            # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
-            button_refresh.click(fn=refresh_labels, inputs=[], outputs=all_labels, every=0.5)
+                # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
+                button_refresh.click(fn=refresh_labels, inputs=[], outputs=all_labels, every=0.5)
     
     print("Starting monitor on port 8000...")
 
