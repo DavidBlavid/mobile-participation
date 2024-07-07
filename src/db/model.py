@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -16,7 +16,8 @@ class Team(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     points = Column(Integer)
-    answer = Column(String)
+    answer = Column(String, nullable=True)
+    correct = Column(Boolean, nullable=True)
 
 class State(Base):
     __tablename__ = 'state'

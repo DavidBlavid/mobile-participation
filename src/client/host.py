@@ -6,6 +6,18 @@ import pika
 from src.db.model import Team
 from src.db.build import connect_db
 
+# used for a gradio theme
+TEAM_COLORS = {
+    1: "red",
+    2: "blue",
+    3: "green",
+    4: "orange",
+    5: "purple",
+    6: "cyan",
+    7: "gray",
+    8: "pink",
+}
+
 def connect_mq():
     # Connect to RabbitMQ
     in_docker = getenv('IN_DOCKER', False)
@@ -94,11 +106,21 @@ if __name__ == '__main__':
         connection.close()
 
         print(f'{team_name}:{text}')
-
+        
         return ""  # Clear the text box after sending
+    
+    # color style based on team number
+    team_number = int(team_name.split(' ')[1])
+    team_color = TEAM_COLORS[team_number]
 
-    with gr.Blocks() as demo:
-        gr.HTML(f'<h1>{team_name}</h1>')
+    # create a theme with the team color
+    theme = gr.themes.Default(neutral_hue=team_color)
+
+    # uses the theme for the demo
+    with gr.Blocks(theme=theme) as demo:
+
+        gr.HTML(f'<h1>{team_name}</h1>', elem_classes=[f'team-{team_number}'])
+
         input_field = gr.Textbox(value='', placeholder='Text hier eingeben...', label='Input', show_label=False)
         button_send = gr.Button(value='Senden')
         # Connect the button to the send_text function with the text from input_field as an argument

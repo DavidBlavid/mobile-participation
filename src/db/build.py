@@ -26,9 +26,9 @@ def build(verbose=False):
     Base.metadata.create_all(engine)
     if verbose: print("Done!")
 
-    # set the base state
+    # set the base state (show anwers)
     if verbose: print("Setting the base state... ", end='')
-    set_phase('hide')
+    set_phase('show')
     if verbose: print("Done!")
 
     # close the database connection

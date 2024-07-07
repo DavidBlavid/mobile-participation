@@ -24,7 +24,8 @@ if __name__ == '__main__':
     # connect to the database
     engine, session = connect_db()
 
-    for line in tqdm(lines):
+    for i, line in tqdm(enumerate(lines)):
+
         line = line.strip()
 
         if line == '':

@@ -6,7 +6,10 @@ import random
 from threading import Thread
 
 from src.db.model import Team, Video, State
-from src.db.build import build, connect_db, set_phase, get_phase
+from src.db.build import build, connect_db, set_phase, get_phase, get_video
+
+POINTS_ON_CORRECT_ANSWER = 10
+
 if __name__ == '__main__':
 
     # get launch arguments
@@ -20,8 +23,34 @@ if __name__ == '__main__':
     num_players = int(arguments[0])
     players = {"-" for i in range(num_players)}
 
+    # rebuild
     if '-b' in arguments:
         build(verbose=True)
+    
+    # reset the game state
+    if '-r' in arguments:
+        engine, session = connect_db()
+
+        # get the state
+        current_state = session.query(State).first()
+
+        # get the first video
+        video = session.query(Video).first()
+
+        current_state.video_id = video.id
+
+        # reset all team scores to 0
+        teams = session.query(Team).all()
+
+        for team in teams:
+            team.points = 0
+            team.answer = ''
+            team.correct = None
+        
+        # commit and close
+        session.commit()
+        session.close()
+        engine.dispose()
 
     def get_players():
         """
@@ -92,6 +121,7 @@ if __name__ == '__main__':
         engine.dispose()
 
         player_labels = [gr.Label(value="No Team connected") for i in range(num_players)]
+        player_labels_correct = [gr.Label(value="🔄️") for i in range(num_players)]
 
         for i in range(num_players):
 
@@ -103,7 +133,26 @@ if __name__ == '__main__':
             if current_team is not None:
                 player_labels[i] = gr.Label(value=f"{current_team.name}: {current_team.answer} ({current_team.points})")
 
-        return player_labels
+                current_team_correct = current_team.correct
+
+                match current_team_correct:
+                    case None:
+                        player_labels_correct[i] = gr.Label(value=f"🔄️")
+                    
+                    case True:
+                        player_labels_correct[i] = gr.Label(value=f"✅")
+                    
+                    case False:
+                        player_labels_correct[i] = gr.Label(value=f"❌")
+        
+        # get video information
+        video = get_video()
+
+        label_video_id = gr.Label(value=video.id)
+        label_video_question = gr.Label(value=video.question)
+        label_video_answer = gr.Label(value=video.answer)
+
+        return player_labels + player_labels_correct + [label_video_id, label_video_question, label_video_answer]
 
     def update_score(team_name, increment):
         """
@@ -115,11 +164,15 @@ if __name__ == '__main__':
         team = session.query(Team).filter_by(name=team_name).first()
 
         if team:
-            # Update the team's score
-            team.points += increment
-            # commit the changes
-            session.commit()
-            print(f"Updated {team_name} score to {team.points}")
+
+            if team.correct is None:
+                # Update the team's score
+                team.points += POINTS_ON_CORRECT_ANSWER
+                team.correct = True
+                # commit the changes
+                session.commit()
+                print(f"Updated {team_name} score to {team.points}")
+
         else:
             print(f"Team {team_name} not found")
 
@@ -128,9 +181,12 @@ if __name__ == '__main__':
         engine.dispose()
 
 
-    def create_update_function(team_name, increment):
+    def create_update_function(team_name, correct_answer: bool):
         """
         Create a closure that captures the team_index and increment.
+        This function will be called when the button is clicked.
+        - team_name: the name of the team
+        - correct_answer: whether the answer is correct or not
         """
         def update_function():
             engine, session = connect_db()
@@ -138,11 +194,19 @@ if __name__ == '__main__':
             team = session.query(Team).filter_by(name=team_name).first()
 
             if team:
-                # Update the team's score
-                team.points += increment
-                # commit the changes
-                session.commit()
-                print(f"Updated {team_name} score to {team.points}")
+
+                if team.correct is None:
+
+                    # Update the team's score
+                    added_points = POINTS_ON_CORRECT_ANSWER if correct_answer else 0
+                    team.points += added_points
+                    team.correct = correct_answer
+
+                    # commit the changes
+                    session.commit()
+                    print(f"Updated {team_name} score to {team.points}")
+                else:
+                    print(f"Team {team_name} was already rated")
             else:
                 print(f"Team {team_name} not found")
 
@@ -154,14 +218,14 @@ if __name__ == '__main__':
             return None
         return update_function
 
-    def clear_answers():
-
+    def clear_round_state():
         # get all teams
         engine, session = connect_db()
         teams = session.query(Team).all()
 
         for team in teams:
             team.answer = ''
+            team.correct = None
 
         session.commit()
 
@@ -222,6 +286,9 @@ if __name__ == '__main__':
         video_index += 1
         
         return_list = set_video()
+
+        clear_round_state()
+
         return return_list
     
     # get all videos from the database
@@ -239,27 +306,28 @@ if __name__ == '__main__':
     Thread(target=consume_messages, daemon=True).start()
 
     player_labels = [None for i in range(num_players)]
-    player_point_up = {}
-    player_point_down = {}
+    player_label_correct = [None for i in range(num_players)]
+
+    player_button_correct = {}
+    player_button_incorrect = {}
 
     with gr.Blocks() as demo:
         with gr.Column():
 
             for i in range(num_players):
                 with gr.Row():
-                    with gr.Column(scale=10):
+                    with gr.Column(scale=16):
                         player_labels[i] = gr.Label(value=f"No Team connected")
                     with gr.Column(scale=1):
-                        player_point_up[i] = gr.Button(value="+1")
-                        player_point_down[i] = gr.Button(value="-1")
+                        player_label_correct[i] = gr.Label(value="⚠️")
+                    with gr.Column(scale=2):
+                        player_button_correct[i] = gr.Button(value="True")
+                        player_button_incorrect[i] = gr.Button(value="False")
             
             with gr.Row():
                 label_video_id = gr.Label(value=" ")
                 label_video_question = gr.Label(value=" ")
                 label_video_answer = gr.Label(value=" ")
-
-                button_next_video = gr.Button(value="Next Video")
-                button_next_video.click(fn=next_video, inputs=[], outputs=[label_video_id, label_video_question, label_video_answer])
 
 
             # we need to do this in a separate loop because the buttons need to be created first
@@ -268,33 +336,37 @@ if __name__ == '__main__':
                 player_name = f"Team {i + 1}"
 
                 # Get the update functions for increment and decrement
-                increment_function = create_update_function(player_name, 10)
-                decrement_function = create_update_function(player_name, -10)
+                correct_answer_function = create_update_function(player_name, True)
+                incorrect_answer_function = create_update_function(player_name, False)
 
                 # Connect the buttons to their respective functions
-                player_point_up[i].click(fn=increment_function, inputs=[], outputs=[])
-                player_point_down[i].click(fn=decrement_function, inputs=[], outputs=[])
+                player_button_correct[i].click(fn=correct_answer_function, inputs=[], outputs=[])
+                player_button_incorrect[i].click(fn=incorrect_answer_function, inputs=[], outputs=[])
 
             with gr.Row():
 
                 # Create a button for refreshing the player labels
                 button_refresh = gr.Button(value="Refresh")
-                button_next = gr.Button(value="Clear Answers")
-                button_exit = gr.Button(value="Exit")
+                button_next = gr.Button(value="Next Video")
+                # button_exit = gr.Button(value="Exit")
+
+                # components to refresh
+                video_refresh_components = [label_video_id, label_video_question, label_video_answer]
+                all_refresh_components = player_labels + player_label_correct + video_refresh_components
 
                 # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
-                button_refresh.click(fn=refresh_labels, inputs=[], outputs=player_labels, every=0.5)
-                button_next.click(fn=clear_answers, inputs=[], outputs=[])
-                button_exit.click(fn=exit, inputs=[], outputs=[])
+                button_refresh.click(fn=refresh_labels, inputs=[], outputs=all_refresh_components, every=0.5)
+                button_next.click(fn=next_video, inputs=[], outputs=video_refresh_components)
+                # button_exit.click(fn=exit, inputs=[], outputs=[])
             
-            with gr.Row():
-
-                # Create a button for refreshing the player labels
-                button_hide = gr.Button(value="Hide Answers")
-                button_show = gr.Button(value="Show Answers")
-
-                # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
-                button_hide.click(fn=set_phase_hide, inputs=[], outputs=[])
-                button_show.click(fn=set_phase_show, inputs=[], outputs=[])
+            # with gr.Row():
+# 
+            #     # Create a button for refreshing the player labels
+            #     button_hide = gr.Button(value="Hide Answers")
+            #     button_show = gr.Button(value="Show Answers")
+# 
+            #     # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
+            #     button_hide.click(fn=set_phase_hide, inputs=[], outputs=[])
+            #     button_show.click(fn=set_phase_show, inputs=[], outputs=[])
 
     demo.launch(server_name='0.0.0.0', server_port=7999, debug=True)
