@@ -1,11 +1,13 @@
 # mobile-participation
 The infrastructure for a mobile participation game where players guess songs and answer questions on their mobile devices. The answers are sent using rabbitmq to a server, so the admin can assign points to the teams without the teams seeing each others answers.
 
-
+# Dependencies
+- ffmpeg
+- yt-dlp
 
 # Usage
 
-First, install all dependencies with `pip install -r requirements.txt`.
+First, install all python dependencies with `pip install -r requirements.txt`.
 
 Then, run the associated docker containers with `docker-compose up -d`.
 

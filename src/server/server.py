@@ -135,15 +135,14 @@ if __name__ == '__main__':
 
                 current_team_correct = current_team.correct
 
-                match current_team_correct:
-                    case None:
-                        player_labels_correct[i] = gr.Label(value=f"🔄️")
-                    
-                    case True:
-                        player_labels_correct[i] = gr.Label(value=f"✅")
-                    
-                    case False:
-                        player_labels_correct[i] = gr.Label(value=f"❌")
+                if current_team_correct == None:
+                    player_labels_correct[i] = gr.Label(value=f"🔄️")
+                elif current_team_correct == True:
+                    player_labels_correct[i] = gr.Label(value=f"✅")
+                elif current_team_correct == False:
+                    player_labels_correct[i] = gr.Label(value=f"❌")
+                else:
+                    player_labels_correct[i] = gr.Label(value=f"❗️")
         
         # get video information
         video = get_video()

@@ -90,13 +90,15 @@ if __name__ == '__main__':
 
             if current_team is not None:
 
-                match current_team.correct:
-                    case None:
-                        string_correct = "❔"
-                    case True:
-                        string_correct = "✅"
-                    case False:
-                        string_correct = "❌"
+                if current_team.correct == None:
+                    string_correct = "❔"
+                elif current_team.correct == True:
+                    string_correct = "✅"
+                elif current_team.correct == False:
+                    string_correct = "❌"
+                else:
+                    # this should not happen, show an error symbol
+                    string_correct = "❗️"
 
                 team_color = TEAM_COLORS[i+1]
 
@@ -136,7 +138,7 @@ if __name__ == '__main__':
         all_labels = [label_question, label_answer] + labels_team_names + labels_correct_answers + labels_answers + labels_points + labels_ranking
 
         return all_labels
-    
+
     def play_video_question():
 
         # get the game state

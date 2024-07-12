@@ -24,60 +24,66 @@ if __name__ == '__main__':
     # connect to the database
     engine, session = connect_db()
 
-    for i, line in tqdm(enumerate(lines)):
+    # manually create a tqdm bar
+    with tqdm(total=len(lines)) as pbar:
 
-        line = line.strip()
+        for i, line in enumerate(lines):
 
-        if line == '':
-            continue
+            line = line.strip()
 
-        tokens = line.split(';')
+            if line == '':
+                continue
 
-        if len(tokens) != 9:
-            print(f'Warning: invalid line in {path_csv}: {line}')
-            continue
+            tokens = line.split(';')
 
-        # get the entry information
-        author = tokens[0]
-        source = tokens[1]
-        question = tokens[2]
-        answer = tokens[3]
-        link = tokens[4]
-        question_start = tokens[5]
-        question_end = tokens[6]
-        answer_start = tokens[7]
-        answer_end = tokens[8]
+            if len(tokens) != 9:
+                print(f'Warning: invalid line in {path_csv}: {line}')
+                continue
 
-        # create the filename
-        # turn source lowercase, remove special characters and replace spaces with underscores
-        download_name = source.lower().replace(' ', '_').replace('ä', 'ae').replace('ö', 'oe').replace('ü', 'ue').replace('ß', 'ss')
+            # get the entry information
+            author = tokens[0]
+            source = tokens[1]
+            question = tokens[2]
+            answer = tokens[3]
+            link = tokens[4]
+            question_start = tokens[5]
+            question_end = tokens[6]
+            answer_start = tokens[7]
+            answer_end = tokens[8]
 
-        # remove all special characters, only keep alphanumeric characters and underscores
-        download_name = ''.join(e for e in download_name if (e.isalnum() or e == '_'))
+            # create the filename
+            # turn source lowercase, remove special characters and replace spaces with underscores
+            download_name = source.lower().replace(' ', '_').replace('ä', 'ae').replace('ö', 'oe').replace('ü', 'ue').replace('ß', 'ss')
 
-        # download if '-d' is in the arguments
-        if '-d' in arguments:
-            # download the video using yt-dlp to /videos/original
-            # also convert to mp4
-            download_string = f'yt-dlp {link} -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --quiet -o videos/original/{download_name}'
-            os.system(download_string)
+            # remove all special characters, only keep alphanumeric characters and underscores
+            download_name = ''.join(e for e in download_name if (e.isalnum() or e == '_'))
 
-        # create a new database entry
-        video = Video(
-            author=author,
-            source=source,
-            question=question,
-            answer=answer,
-            link=link,
-            question_start=question_start,
-            question_end=question_end,
-            answer_start=answer_start,
-            answer_end=answer_end,
-            filename=download_name
-        )
+            # download if '-d' is in the arguments
+            if '-d' in arguments:
+                # download the video using yt-dlp to /videos/original
+                # also convert to mp4
+                download_string = f'yt-dlp {link} -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --quiet -o videos/original/{download_name}'
+                os.system(download_string)
 
-        # add the video to the database
-        session.add(video)
+            # create a new database entry
+            video = Video(
+                author=author,
+                source=source,
+                question=question,
+                answer=answer,
+                link=link,
+                question_start=question_start,
+                question_end=question_end,
+                answer_start=answer_start,
+                answer_end=answer_end,
+                filename=download_name
+            )
+
+            # add the video to the database
+            session.add(video)
+
+            # update the progress bar
+            pbar.update(1)
 
     # commit the changes
     session.commit()
