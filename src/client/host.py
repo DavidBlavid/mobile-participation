@@ -73,7 +73,8 @@ if __name__ == '__main__':
         # create a new team
         team = Team(name=team_name,
                     points=0,
-                    answer='')
+                    answer_1='',
+                    answer_2='')
         
         print(f'Created new team {team_name}')
         
@@ -88,15 +89,18 @@ if __name__ == '__main__':
     print(f'Starting mobile host on port {port} for team {team_name}...')
 
     # Function to be called when the button is pressed
-    def send_text(text, team_name=team_name):
+    def send_text(answer1, answer2, team_name=team_name):
 
         # Connect to RabbitMQ
         channel, connection = connect_mq()
 
+        message_text = f'{team_name}§{answer1}§{answer2}'
+        print(message_text)
+
         channel.basic_publish(
             exchange='',
             routing_key='game',
-            body=f'{team_name}:{text}',
+            body=message_text,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # make message persistent
             )
@@ -104,10 +108,8 @@ if __name__ == '__main__':
 
         # close the connection
         connection.close()
-
-        print(f'{team_name}:{text}')
         
-        return ""  # Clear the text box after sending
+        return ["", ""]  # Clear the text box after sending
     
     # color style based on team number
     team_number = int(team_name.split(' ')[1])
@@ -121,12 +123,24 @@ if __name__ == '__main__':
 
         gr.HTML(f'<h1>{team_name}</h1>', elem_classes=[f'team-{team_number}'])
 
-        input_field = gr.Textbox(value='', placeholder='Text hier eingeben...', label='Input', show_label=False)
+        gr.HTML(f'Hauptfrage')
+        input_field_1 = gr.Textbox(value='', placeholder='Antwort eingeben...', label='Input', show_label=False)
+
+        gr.HTML(f'Extrafrage')
+        input_field_2 = gr.Textbox(value='', placeholder='Antwort eingeben...', label='Input', show_label=False)
+
+
         button_send = gr.Button(value='Senden')
+
         # Connect the button to the send_text function with the text from input_field as an argument
-        button_send.click(fn=send_text, inputs=input_field, outputs=input_field)
+
+        input_fields = [input_field_1, input_field_2]
+
+        # send via button
+        button_send.click(fn=send_text, inputs=input_fields, outputs=input_fields)
 
         # send via enter
-        input_field.submit(fn=send_text, inputs=input_field, outputs=input_field)
+        # input_field_1.submit(fn=send_text, inputs=input_fields, outputs=input_fields)
+        # input_field_2.submit(fn=send_text, inputs=input_fields, outputs=input_fields)
         
     demo.launch(server_name='0.0.0.0', server_port=port)

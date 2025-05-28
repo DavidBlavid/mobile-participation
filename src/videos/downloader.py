@@ -41,19 +41,28 @@ if __name__ == '__main__':
                 continue
 
             # get the entry information
-            author = tokens[0]
-            source = tokens[1]
-            question = tokens[2]
-            answer = tokens[3]
-            link = tokens[4]
-            question_start = tokens[5]
-            question_end = tokens[6]
-            answer_start = tokens[7]
-            answer_end = tokens[8]
+            title = tokens[0]
+            author = tokens[1]
+            question_1 = tokens[2]
+            answer_1 = tokens[3]
+            question_2 = tokens[4]
+            answer_2 = tokens[5]
+            link = tokens[6]
+            video_start = tokens[7]
+            video_end = tokens[8]
 
             # create the filename
             # turn source lowercase, remove special characters and replace spaces with underscores
-            download_name = source.lower().replace(' ', '_').replace('ä', 'ae').replace('ö', 'oe').replace('ü', 'ue').replace('ß', 'ss')
+            replacements = {
+                ' ': '_',
+                'ä': 'ae',
+                'ö': 'oe',
+                'ü': 'ue',
+                'ß': 'ss'
+            }
+            download_name = title.lower()
+            for pre, post in replacements.items():
+                download_name = download_name.replace(pre, post)
 
             # remove all special characters, only keep alphanumeric characters and underscores
             download_name = ''.join(e for e in download_name if (e.isalnum() or e == '_'))
@@ -67,15 +76,15 @@ if __name__ == '__main__':
 
             # create a new database entry
             video = Video(
+                title=title,
                 author=author,
-                source=source,
-                question=question,
-                answer=answer,
+                question_1=question_1,
+                answer_1=answer_1,
+                question_2=question_2,
+                answer_2=answer_2,
                 link=link,
-                question_start=question_start,
-                question_end=question_end,
-                answer_start=answer_start,
-                answer_end=answer_end,
+                video_start=video_start,
+                video_end=video_end,
                 filename=download_name
             )
 
