@@ -41,9 +41,9 @@ if __name__ == '__main__':
                 continue
 
             # get the entry information
-            title = tokens[0]
+            question_1 = tokens[0]
             author = tokens[1]
-            question_1 = tokens[2]
+            title = tokens[2]
             answer_1 = tokens[3]
             question_2 = tokens[4]
             answer_2 = tokens[5]

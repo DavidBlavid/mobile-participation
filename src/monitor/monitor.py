@@ -4,7 +4,7 @@ import sys
 import gradio as gr
 from threading import Thread
 
-from src.db.model import Team
+from src.db.model import Team, State
 from src.db.build import connect_db, get_phase, set_phase, get_video
 
 VIDEO_DIR = "videos"
@@ -20,15 +20,49 @@ TEAM_COLORS = {
     8: "#cd21bd",
 }
 
-def answer_to_emoji(answer):
-    if answer == None:
-        return "❔"
-    elif answer == True:
-        return "✅"
-    elif answer == False:
+def answer_to_emoji(answer) -> str:
+    if answer == None or answer == '':
         return "❌"
+    elif answer == "perfect":
+        return "⭐"
+    elif answer == "correct":
+        return "✅"
+    elif answer == "incorrect":
+        return "❌"
+    elif answer == "late":
+        return "⏰"
     else:
         return "❗️"
+
+def get_selected_years():
+    """
+    Get the selected years from the current state.
+    """
+    engine, session = connect_db()
+
+    # get the current state
+    current_state = session.query(State).first()
+
+    if current_state is None:
+        print("[state] No current state found")
+        session.close()
+        engine.dispose()
+        return []
+
+    if current_state.selected_years is None:
+        # print("No selected years found")
+        return []
+
+    # split the selected years by comma and return them as a list
+    selected_years = current_state.selected_years.split(',')
+
+    # sort the years
+    selected_years = sorted([int(year.strip()) for year in selected_years if year.strip().isdigit()])
+
+    session.close()
+    engine.dispose()
+
+    return selected_years
 
 if __name__ == '__main__':
 
@@ -57,19 +91,33 @@ if __name__ == '__main__':
         """
         engine, session = connect_db()
 
-        phase = get_phase()
+        phase = get_phase()     # either 'show' or 'hide'
+        is_show = (phase == 'show')
 
         # get the current video
         video = get_video()
 
-        label_question_1 = gr.HTML(value=f"<h1>{video.question_1}</h1>", show_label=False)
-        label_answer_1 = gr.HTML(value=f"<h1>{video.answer_1}</h1>", show_label=False)
+        question_1 = video.question_1
+        question_2 = video.question_2
 
-        label_question_2 = gr.HTML(value=f"<h1>{video.question_2}</h1>", show_label=False)
-        label_answer_2 = gr.HTML(value=f"<h1>{video.answer_2}</h1>", show_label=False)
+
+
+        if question_1 is None or question_1 == '-' or question_1 == '':
+            label_question_1 = gr.HTML(value="<h1>-</h1>", show_label=False, visible=False)
+            label_answer_1 = gr.HTML(value=f"<h1>{video.answer_1}</h1>", show_label=False)
+        else:
+            label_question_1 = gr.HTML(value=f"<h1><b>Frage 1: {video.question_1}</b></h1>", show_label=False, visible=True)
+            label_answer_1 = gr.HTML(value=f"<h1>{video.answer_1}</h1>", show_label=False, visible=is_show)
+
+        if question_2 is None or question_2 == '-' or question_2 == '':
+            label_question_2 = gr.HTML(value="<h1>-</h1>", show_label=False, visible=False)
+            label_answer_2 = gr.HTML(value=f"<h1>{video.answer_2}</h1>", show_label=False)
+        else:
+            label_question_2 = gr.HTML(value=f"<h1><b>Frage 2: {video.question_2}</b></h1>", show_label=False, visible=True)
+            label_answer_2 = gr.HTML(value=f"<h1>{video.answer_2}</h1>", show_label=False, visible=is_show)
 
         # True if there is a question 2
-        q2_exists = (video.question_2 is not None) and (not video.question_2 == '-')
+        q2_exists = (video.question_2 is not None) and (not video.question_2 == '-') and (not video.question_2 == '')
 
         # get all teams, ordered by name
         teams = session.query(Team).order_by(Team.name).all()
@@ -97,15 +145,22 @@ if __name__ == '__main__':
 
                 team_color = TEAM_COLORS[i+1]
 
+                if is_show:
+                    text_answer_1 = f"{current_team.answer_1} {string_correct_1}"
+                    text_answer_2 = f"{current_team.answer_2} {string_correct_2}"
+                else:
+                    text_answer_1 = f"{current_team.answer_1} "
+                    text_answer_2 = f"{current_team.answer_2} "
+                
                 labels_team_names[i] = gr.Label(value=f"{current_team.name}", show_label=False, color=team_color)
-                labels_answers_1[i] = gr.Label(value=f"{current_team.answer_1} {string_correct_1}", show_label=False)
+                labels_answers_1[i] = gr.Label(value=text_answer_1, show_label=False)
 
                 if q2_exists:
-                    labels_answers_2[i] = gr.Label(value=f"{current_team.answer_2} {string_correct_2}", show_label=False)
+                    labels_answers_2[i] = gr.Label(value=text_answer_2, show_label=False, visible=True)
                 else:
-                    labels_answers_2[i] = gr.Label(value="-", show_label=False)
+                    labels_answers_2[i] = gr.Label(value="-", show_label=False, visible=False)
                 
-                labels_points[i] = gr.Label(value=f"{current_team.points}", show_label=False)
+                labels_points[i] = gr.Label(value=f"{current_team.points}", show_label=False, visible=is_show)
         
         # build ranking labels
         scores = {team.name: team.points for team in teams}
@@ -132,12 +187,78 @@ if __name__ == '__main__':
                 else:
                     label_string = f"{label_string}"
 
-                labels_ranking[i] = gr.Label(value=label_string, show_label=False, color=team_color)
+                labels_ranking[i] = gr.Label(value=label_string, show_label=False, color=team_color, visible=is_show)
         
         # combine the label lists
         all_labels = [label_question_1, label_answer_1, label_question_2, label_answer_2] + labels_team_names + labels_answers_1 + labels_answers_2 + labels_points + labels_ranking
 
         return all_labels
+    
+    def refresh_labels_vid():
+        """
+        Fetch the current video questions and answers from the database and return them.
+        This returns a list of the labels that will be updated in the UI with the following order:
+        - Video Question 1
+        - Video Question 2
+        """
+        engine, session = connect_db()
+
+        # get the current video
+        video = get_video()
+
+        if video.question_1 is None or video.question_1 == '-' or video.question_1 == '':
+            label_vid_question_1 = gr.HTML(value="<h1>-</h1>", show_label=False, visible=False)
+        else:
+            label_vid_question_1 = gr.HTML(value=f"<h1>Frage 1: {video.question_1}</h1>", show_label=False, visible=True)
+
+        if video.question_2 is None or video.question_2 == '-' or video.question_2 == '':
+            label_vid_question_2 = gr.HTML(value="<h1>-</h1>", show_label=False, visible=False)
+        else:
+            label_vid_question_2 = gr.HTML(value=f"<h1>Frage 2: {video.question_2}</h1>", show_label=False, visible=True)
+
+        session.close()
+        engine.dispose()
+
+        return [label_vid_question_1, label_vid_question_2]
+
+    def refresh_years():
+        years = set(get_selected_years())
+        H_BG, N_BG, C_BG = "#bfa43a", "#cccccc", "#ffcc25"
+
+        # get the current video
+        video = get_video()
+        if video.answer_1 is not None and video.answer_1 != '':
+            video_year = int(video.answer_1)
+            years.add(video_year)
+        else:
+            video_year = None
+        
+        is_show = get_phase() == 'show'
+
+        update_list = []
+
+        for i in range(7 * 10):
+            year = 1960 + i
+            if year > 2019:
+                break
+            elem_id = "year_" + str(year)
+
+            is_current_year = (year == video_year)
+            is_highlighted_year = (year in years)
+
+            if is_current_year and is_show:
+                color = C_BG
+            elif is_highlighted_year and not (not is_show and is_current_year):
+                color = H_BG
+            else:
+                color = N_BG
+
+            update_list.append(gr.update(
+                elem_id=elem_id,
+                color=color,
+            ))
+
+        return update_list
 
     def play_video():
 
@@ -162,7 +283,8 @@ if __name__ == '__main__':
     #label_team {padding: 0 !important; font-size: var(--text-xl) !important;}
     #label_points {padding: 0 !important; font-size: var(--text-xl) !important;}
     #label_answer {padding: 0 !important; font-size: var(--text-xl) !important;}
-    .small_text .output-class {font-size: var(--text-xl) !important; padding: var(--size-3) var(--size-4) !important;}
+    .small_text .output-class {font-size: 20pt !important; padding: var(--size-1) var(--size-2) !important;}
+    .big_text .output-class {font-size: 45pt !important}
     .left_margin {margin-left: 50px !important;}
     .no_padding {padding: 0 !important;}
     [data-testid="label-output-value"] {padding: 0 !important;}
@@ -170,13 +292,57 @@ if __name__ == '__main__':
     .prose .min {min-height: 0 !important;}
     .generating {border: 0 !important;}
     .invisible {visibility: hidden !important;}
-    .default {background-color: var(--neutral-900) !important; color: var(--neutral-500) !important; font-weight: normal !important;}
-    .highlight {background-color: var(--neutral-600) !important; color: var(--neutral-50) !important; font-weight: bold !important;}
+    .default {
+    background-color: #ccc !important;
+    font-weight: normal !important;
+    }
+
+    .default [data-testid="label-output-value"],
+    .default[data-testid="label-output-value"] {
+    color: #000 !important;
+    padding: 0 !important;
+    }
+
+    .highlight {
+    background-color: rgb(191, 164, 58) !important;
+    font-weight: bold !important;
+    }
+
+    .highlight [data-testid="label-output-value"],
+    .highlight[data-testid="label-output-value"] {
+    color: #000 !important;
+    }
+
+    /* kill wrapper padding */
+    .container.svelte-1mutzus,
+    .block.big_text.default.svelte-11xb1hd > .svelte-1mutzus {      /* fallback */
+        padding: 0 !important;
+    }
+
+    /* give the space back to the innermost child */
+    .container.svelte-1mutzus > .output-class,
+    .block.big_text.default.svelte-11xb1hd > .svelte-1mutzus > .output-class {
+        padding: var(--size-1) var(--size-2) !important;            /* same gap you used elsewhere */
+        font-weight: 700;                                           /* keeps the highlight look */
+    }
+
     """
 
     with gr.Blocks(css=css) as demo:
 
         with gr.Tab(label = "Video"):
+
+            label_vid_question_1 = gr.HTML(value="[FRAGE 1]", elem_classes=["center_text"])
+            label_vid_question_2 = gr.HTML(value="[FRAGE 2]", elem_classes=["center_text"])
+
+            timer_vid_question = gr.Timer(5)  # periodic trigger
+            timer_vid_question.tick(
+                fn=lambda: refresh_labels_vid(),
+                inputs=[],
+                outputs=[label_vid_question_1, label_vid_question_2],
+                show_progress="hidden",
+            )
+
             with gr.Column():
                 video = gr.Video(
                     height=720,
@@ -196,11 +362,11 @@ if __name__ == '__main__':
         
         with gr.Tab(label = "Antworten"):
 
-            label_question_1 = gr.HTML(value="[FRAGE 1]", elem_classes=["center_text"])
-            label_answer_1 = gr.HTML(value="[ANTWORT 1]", elem_classes=["center_text"])
+            label_question_1 = gr.HTML(value="<h1>[FRAGE 1]</h1>", elem_classes=["center_text"])
+            label_answer_1 = gr.HTML(value="<h2>[ANTWORT 1]</h2>", elem_classes=["center_text"])
 
-            label_question_2 = gr.HTML(value="[FRAGE 2]", elem_classes=["center_text"])
-            label_answer_2 = gr.HTML(value="[ANTWORT 2]", elem_classes=["center_text"])
+            label_question_2 = gr.HTML(value="<h1>[FRAGE 2]</h1>", elem_classes=["center_text"])
+            label_answer_2 = gr.HTML(value="<h2>[ANTWORT 2]</h2>", elem_classes=["center_text"])
 
             with gr.Row():
 
@@ -220,13 +386,21 @@ if __name__ == '__main__':
                             labels_ranking[i] = gr.Label(value=f"-", show_label=False, elem_id=f"label_ranking", scale=1, elem_classes=["small_text", "no_padding"])
             
             # Create a button for refreshing the player labels
-            button_refresh = gr.Button(value="Refresh", every=0.5)
+            button_refresh = gr.Button(value="Refresh")
 
             # create a list of all labels
             all_labels = [label_question_1, label_answer_1, label_question_2, label_answer_2] + labels_team + lables_answer_1 + labels_answer_2 + labels_points + labels_ranking
 
             # When the button is clicked, refresh_labels will be called and its outputs will update the player_labels
-            button_refresh.click(fn=refresh_labels, inputs=[], outputs=all_labels)
+            button_refresh.click(fn=refresh_labels, inputs=[], outputs=all_labels, show_progress="hidden")
+
+            timer_refresh = gr.Timer(5)
+            timer_refresh.tick(
+                fn=refresh_labels,
+                inputs=[],
+                outputs=all_labels,
+                show_progress="hidden",
+            )
         
         year_labels = []
         with gr.Tab(label = "Jahre"):
@@ -235,26 +409,19 @@ if __name__ == '__main__':
             for row in range(7):
                 with gr.Row():
                     for col in range(10):
-                        year = 1950 + row * 10 + col
-                        if year > 2020:
+                        year = 1960 + row * 10 + col
+                        if year > 2019:
                             break
-                        year_labels.append(gr.Label(value=str(year), elem_id=f"year_{year}", scale=1, elem_classes=["small_text", "default"], show_label=False))
+                        year_labels.append(gr.Label(value=str(year), elem_id=f"year_{year}", scale=1, elem_classes=["big_text", "default"], show_label=False))
             
-            # add 2020 to 2025 to the last row
-            with gr.Row():
-                for col in range(10):
-                    year = 2020 + col
-
-                    if year > 2025:
-                        year_labels.append(gr.Label(value=str(year), elem_id=f"year_{year}", scale=1, elem_classes=["small_text", "default", "invisible"], show_label=False))
-                    else:
-                        year_labels.append(gr.Label(value=str(year), elem_id=f"year_{year}", scale=1, elem_classes=["small_text", "default"], show_label=False))
-            
-            # create a button to refresh the label highlights
-            button_highlight_years = gr.Button(value="Highlight Years", every=0.5)
-
-    year_labels[10].elem_classes = ["small_text", "highlight"]
-    year_labels[15].elem_classes = ["small_text", "highlight"]
+            # timer to refresh the label highlights
+            timer_year = gr.Timer(1)
+            timer_year.tick(
+                fn=refresh_years,
+                inputs=[],
+                outputs=year_labels,
+                show_progress="hidden",
+            )
 
     print("Starting monitor on port 8000...")
 

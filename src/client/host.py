@@ -6,6 +6,8 @@ import pika
 from src.db.model import Team
 from src.db.build import connect_db
 
+DEBUG_PRINT = False
+
 # used for a gradio theme
 TEAM_COLORS = {
     1: "red",
@@ -76,7 +78,7 @@ if __name__ == '__main__':
                     answer_1='',
                     answer_2='')
         
-        print(f'Created new team {team_name}')
+        if DEBUG_PRINT: print(f'Created new team {team_name}')
         
         # add the team to the database
         session.add(team)
@@ -86,7 +88,7 @@ if __name__ == '__main__':
     session.close()
     engine.dispose()
 
-    print(f'Starting mobile host on port {port} for team {team_name}...')
+    if DEBUG_PRINT: print(f'Starting mobile host on port {port} for team {team_name}...')
 
     # Function to be called when the button is pressed
     def send_text(answer1, answer2, team_name=team_name):
@@ -95,7 +97,6 @@ if __name__ == '__main__':
         channel, connection = connect_mq()
 
         message_text = f'{team_name}§{answer1}§{answer2}'
-        print(message_text)
 
         channel.basic_publish(
             exchange='',
@@ -123,10 +124,10 @@ if __name__ == '__main__':
 
         gr.HTML(f'<h1>{team_name}</h1>', elem_classes=[f'team-{team_number}'])
 
-        gr.HTML(f'Hauptfrage')
+        gr.HTML(f'<b>Frage 1:</b>')
         input_field_1 = gr.Textbox(value='', placeholder='Antwort eingeben...', label='Input', show_label=False)
 
-        gr.HTML(f'Extrafrage')
+        gr.HTML(f'<b>Frage 2:</b>')
         input_field_2 = gr.Textbox(value='', placeholder='Antwort eingeben...', label='Input', show_label=False)
 
 

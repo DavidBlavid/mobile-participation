@@ -12,8 +12,8 @@ class Team(Base):
     - points (int): number of points the team has
     - answer_1 (str): answer to question 1
     - answer_2 (str): answer to question 2
-    - correct_1 (bool): True if answer to question 1 is correct
-    - correct_2 (bool): True if answer to question 2 is correct
+    - correct_1 (str): short string that indicates if answer_1 is correct or not
+    - correct_2 (str): short string that indicates if answer_2 is correct or not
     """
     __tablename__ = 'teams'
     id = Column(Integer, primary_key=True)
@@ -21,13 +21,14 @@ class Team(Base):
     points = Column(Integer)
     answer_1 = Column(String, nullable=True)
     answer_2 = Column(String, nullable=True)
-    correct_1 = Column(Boolean, nullable=True)
-    correct_2 = Column(Boolean, nullable=True)
+    correct_1 = Column(String, nullable=True)
+    correct_2 = Column(String, nullable=True)
 
 class State(Base):
     __tablename__ = 'state'
     id = Column(Integer, primary_key=True)
     phase = Column(String)
+    selected_years = Column(String, nullable=True)
     video_id = Column(Integer, ForeignKey('videos.id'), nullable=True)
     video = relationship("Video", backref="state")
 
@@ -46,9 +47,9 @@ class Video(Base):
     """
     __tablename__ = 'videos'
     id = Column(Integer, primary_key=True)
-    title = Column(String)
-    author = Column(String)
     question_1 = Column(String)
+    author = Column(String)
+    title = Column(String)
     answer_1 = Column(String)
     question_2 = Column(String)
     answer_2 = Column(String)
