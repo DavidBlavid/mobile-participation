@@ -149,8 +149,8 @@ if __name__ == '__main__':
                     text_answer_1 = f"{current_team.answer_1} {string_correct_1}"
                     text_answer_2 = f"{current_team.answer_2} {string_correct_2}"
                 else:
-                    text_answer_1 = f"{current_team.answer_1} "
-                    text_answer_2 = f"{current_team.answer_2} "
+                    text_answer_1 = f"{current_team.answer_1}  "
+                    text_answer_2 = f"{current_team.answer_2}  "
                 
                 labels_team_names[i] = gr.Label(value=f"{current_team.name}", show_label=False, color=team_color)
                 labels_answers_1[i] = gr.Label(value=text_answer_1, show_label=False)
@@ -362,11 +362,11 @@ if __name__ == '__main__':
         
         with gr.Tab(label = "Antworten"):
 
-            label_question_1 = gr.HTML(value="<h1>[FRAGE 1]</h1>", elem_classes=["center_text"])
-            label_answer_1 = gr.HTML(value="<h2>[ANTWORT 1]</h2>", elem_classes=["center_text"])
+            label_question_1 = gr.HTML(value="", elem_classes=["center_text"])
+            label_answer_1 = gr.HTML(value="", elem_classes=["center_text"])
 
-            label_question_2 = gr.HTML(value="<h1>[FRAGE 2]</h1>", elem_classes=["center_text"])
-            label_answer_2 = gr.HTML(value="<h2>[ANTWORT 2]</h2>", elem_classes=["center_text"])
+            label_question_2 = gr.HTML(value="", elem_classes=["center_text"])
+            label_answer_2 = gr.HTML(value="", elem_classes=["center_text"])
 
             with gr.Row():
 

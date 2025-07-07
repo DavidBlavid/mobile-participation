@@ -11,7 +11,7 @@ from src.db.build import build, connect_db, set_phase, get_phase, get_video
 START_VIDEO_INDEX = 13                  # index of the first video to show. set to 13 for day 2
 
 POINTS_ON_CORRECT_ANSWER_1 = 10         # points for a correct answer to question 1
-POINTS_ON_PERFECT_ANSWER_1 = 10         # additional points for a perfect answer to question 1
+POINTS_ON_PERFECT_ANSWER_1 = 20         # points for a perfect answer to question 1
 POINTS_ON_CORRECT_ANSWER_2 = 10         # points for a correct answer to question 2
 
 ACCEPT_LATE_ANSWERS = False             # if False, does not accept answers during the show phase
