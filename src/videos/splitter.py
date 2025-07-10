@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     # get all videos from the database
     videos = session.query(Video).all()
-
+    
     # create the folders if they do not exist
     if not os.path.exists(f'videos/clips'):
         os.makedirs(f'videos/clips')

@@ -284,7 +284,7 @@ if __name__ == '__main__':
     #label_points {padding: 0 !important; font-size: var(--text-xl) !important;}
     #label_answer {padding: 0 !important; font-size: var(--text-xl) !important;}
     .small_text .output-class {font-size: 20pt !important; padding: var(--size-1) var(--size-2) !important;}
-    .big_text .output-class {font-size: 45pt !important}
+    .big_text .output-class {font-size: 35pt !important}
     .left_margin {margin-left: 50px !important;}
     .no_padding {padding: 0 !important;}
     [data-testid="label-output-value"] {padding: 0 !important;}
@@ -314,16 +314,27 @@ if __name__ == '__main__':
     }
 
     /* kill wrapper padding */
-    .container.svelte-1mutzus,
-    .block.big_text.default.svelte-11xb1hd > .svelte-1mutzus {      /* fallback */
+    .container.svelte-1l15rn0,
+    .block.big_text.default.svelte-au1olv > .svelte-1l15rn0 {      /* fallback */
         padding: 0 !important;
     }
 
     /* give the space back to the innermost child */
-    .container.svelte-1mutzus > .output-class,
-    .block.big_text.default.svelte-11xb1hd > .svelte-1mutzus > .output-class {
+    .container.svelte-1l15rn0 > .output-class,
+    .block.big_text.default.svelte-au1olv > .svelte-1l15rn0 > .output-class {
         padding: var(--size-1) var(--size-2) !important;            /* same gap you used elsewhere */
         font-weight: 700;                                           /* keeps the highlight look */
+    }
+
+    #year_grid {
+        display: grid !important;
+        grid-template-columns: repeat(10, 1fr) !important;
+        gap: var(--size-2) !important;
+    }
+    #year_grid .output-class {
+        min-width: 0 !important;          /* prevents wrap */
+        text-align: center !important;
+        padding: var(--size-2) !important;
     }
 
     """
@@ -406,14 +417,16 @@ if __name__ == '__main__':
         with gr.Tab(label = "Jahre"):
 
             # here we show the years from 1950 to 2020 in a 10x7 grid
-            for row in range(7):
-                with gr.Row():
-                    for col in range(10):
-                        year = 1960 + row * 10 + col
-                        if year > 2019:
-                            break
-                        year_labels.append(gr.Label(value=str(year), elem_id=f"year_{year}", scale=1, elem_classes=["big_text", "default"], show_label=False))
-            
+            with gr.Row(elem_id="year_grid"):           # single grid container
+                for year in range(1960, 2020):
+                    year_labels.append(
+                        gr.Label(
+                            value=str(year),
+                            elem_id=f"year_{year}",
+                            elem_classes=["big_text", "default"],
+                            show_label=False,
+                        )
+                    )
             # timer to refresh the label highlights
             timer_year = gr.Timer(1)
             timer_year.tick(

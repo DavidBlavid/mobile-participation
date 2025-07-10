@@ -144,4 +144,7 @@ if __name__ == '__main__':
         # input_field_1.submit(fn=send_text, inputs=input_fields, outputs=input_fields)
         # input_field_2.submit(fn=send_text, inputs=input_fields, outputs=input_fields)
         
-    demo.launch(server_name='0.0.0.0', server_port=port)
+    demo.launch(
+        server_name='0.0.0.0',
+        server_port=port
+        )

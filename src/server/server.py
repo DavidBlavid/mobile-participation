@@ -8,7 +8,7 @@ from threading import Thread
 from src.db.model import Team, Video, State
 from src.db.build import build, connect_db, set_phase, get_phase, get_video
 
-START_VIDEO_INDEX = 13                  # index of the first video to show. set to 13 for day 2
+START_VIDEO_INDEX = 1                   # index of the first video to show. set to 13 for day 2
 
 POINTS_ON_CORRECT_ANSWER_1 = 10         # points for a correct answer to question 1
 POINTS_ON_PERFECT_ANSWER_1 = 20         # points for a perfect answer to question 1
@@ -196,7 +196,7 @@ if __name__ == '__main__':
             emoji = answer_to_emoji(team.correct_1)
             print(f"[msg:{team_name}] {emoji} answered perfectly for question 1: {answer_1}")
         
-        elif answer_1 is not None and next_smaller_year <= answer_1 <= next_larger_year:
+        elif answer_1 is not None and next_smaller_year < answer_1 < next_larger_year:
             team.correct_1 = "correct"
             team.points += POINTS_ON_CORRECT_ANSWER_1
             print(f"[msg:{team_name}] {team.correct_1} answered correctly for question 1: {answer_1}")
@@ -455,7 +455,7 @@ if __name__ == '__main__':
             return
 
         # get the current video
-        current_video: Video = videos[video_index]
+        current_video: Video = videos[video_index-1]
 
         if current_video is None:
             print("[video] No current video found")
@@ -493,8 +493,12 @@ if __name__ == '__main__':
 
         global video_index, videos
 
+        print(0, video_index)
+
         if video_index == None:
             video_index = START_VIDEO_INDEX - 1
+        
+        print(1, video_index)
         
         if video_index >= 1:
 
@@ -510,6 +514,8 @@ if __name__ == '__main__':
             add_selected_year(currrent_year)
 
         video_index += 1
+
+        print(2, video_index)
         
         return_list = set_video()
 
@@ -617,5 +623,5 @@ if __name__ == '__main__':
         server_name='0.0.0.0',
         server_port=7999,
         debug=True,
-        auth=AUTH_CREDENTIALS if USE_AUTH else None,
+        auth=AUTH_CREDENTIALS if USE_AUTH else None
     )
