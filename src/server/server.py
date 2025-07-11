@@ -8,7 +8,7 @@ from threading import Thread
 from src.db.model import Team, Video, State
 from src.db.build import build, connect_db, set_phase, get_phase, get_video
 
-START_VIDEO_INDEX = 1                   # index of the first video to show. set to 13 for day 2
+START_VIDEO_INDEX = 1                   # index of the first video to show. set to 28 for day 2
 
 POINTS_ON_CORRECT_ANSWER_1 = 10         # points for a correct answer to question 1
 POINTS_ON_PERFECT_ANSWER_1 = 20         # points for a perfect answer to question 1
@@ -493,12 +493,8 @@ if __name__ == '__main__':
 
         global video_index, videos
 
-        print(0, video_index)
-
         if video_index == None:
             video_index = START_VIDEO_INDEX - 1
-        
-        print(1, video_index)
         
         if video_index >= 1:
 
@@ -514,8 +510,6 @@ if __name__ == '__main__':
             add_selected_year(currrent_year)
 
         video_index += 1
-
-        print(2, video_index)
         
         return_list = set_video()
 

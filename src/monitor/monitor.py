@@ -7,6 +7,9 @@ from threading import Thread
 from src.db.model import Team, State
 from src.db.build import connect_db, get_phase, set_phase, get_video
 
+USE_AUTH = True                         # if True, requires authentication to access the server
+AUTH_CREDENTIALS = ('admin', 'admin')   # credentials for authentication
+
 VIDEO_DIR = "videos"
 
 TEAM_COLORS = {
@@ -438,4 +441,9 @@ if __name__ == '__main__':
 
     print("Starting monitor on port 8000...")
 
-    demo.launch(server_name='0.0.0.0', server_port=8000, debug=True)
+    demo.launch(
+        server_name='0.0.0.0',
+        server_port=8000,
+        debug=True,
+        auth=AUTH_CREDENTIALS if USE_AUTH else None,
+    )
