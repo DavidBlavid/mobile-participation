@@ -8,7 +8,7 @@ from threading import Thread
 from src.db.model import Team, Video, State
 from src.db.build import build, connect_db, set_phase, get_phase, get_video
 
-START_VIDEO_INDEX = 1                   # index of the first video to show. set to 28 for day 2
+START_VIDEO_INDEX = 28                  # index of the first video to show. set to 28 for day 2
 
 POINTS_ON_CORRECT_ANSWER_1 = 10         # points for a correct answer to question 1
 POINTS_ON_PERFECT_ANSWER_1 = 20         # points for a perfect answer to question 1
@@ -170,8 +170,8 @@ if __name__ == '__main__':
         # you get the selected years from the current state
         selected_years = get_selected_years()
 
-        min_year = 1960
-        max_year = 2019
+        min_year = 1959
+        max_year = 2020
 
         # find the next smaller and next larger year
         next_smaller_year = None
@@ -504,7 +504,7 @@ if __name__ == '__main__':
                 return []
 
             # add the current video to the selected years
-            current_video = videos[video_index]
+            current_video = videos[video_index-1]
             currrent_year = int(current_video.answer_1)
             print(f"[years] Adding year {currrent_year} to selected years")
             add_selected_year(currrent_year)
